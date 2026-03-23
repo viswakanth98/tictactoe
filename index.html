@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tic Tac Toe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Variables ─────────────────────────────────────────── */
+    :root {
+      --x-color: #00d4ff;
+      --o-color: #ff006e;
+      --x-glow: 0 0 20px #00d4ff88, 0 0 40px #00d4ff44;
+      --o-glow: 0 0 20px #ff006e88, 0 0 40px #ff006e44;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --text: rgba(255, 255, 255, 0.9);
+      --dim: rgba(255, 255, 255, 0.35);
+      --board-size: min(92vw, 440px);
+    }
+
+    /* ── Reset & Base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      background: #0a0a1a;
+      overflow: hidden;
+      color: var(--text);
+    }
+
+    /* ── Ambient background blobs ──────────────────────────── */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #00d4ff22, transparent 70%);
+      top: -150px; left: -150px;
+    }
+    body::after {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, #ff006e1a, transparent 70%);
+      bottom: -200px; right: -200px;
+      animation-delay: -6s;
+      animation-direction: alternate-reverse;
+    }
+
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(60px, 40px) scale(1.15); }
+    }
+
+    /* ── Container ─────────────────────────────────────────── */
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 24px 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Title ─────────────────────────────────────────────── */
+    h1 {
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      font-weight: 900;
+      letter-spacing: 0.25em;
+      background: linear-gradient(135deg, var(--x-color), #a855f7, var(--o-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      filter: drop-shadow(0 0 16px #a855f766);
+    }
+
+    /* ── Scoreboard ────────────────────────────────────────── */
+    .scoreboard {
+      display: flex;
+      gap: 12px;
+    }
+
+    .score-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 20px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      min-width: 72px;
+      transition: box-shadow 0.3s;
+    }
+
+    .score-card.x-card  { border-color: #00d4ff44; }
+    .score-card.o-card  { border-color: #ff006e44; }
+
+    .score-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    .score-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+      transition: transform 0.15s;
+    }
+
+    .x-card .score-value { color: var(--x-color); text-shadow: var(--x-glow); }
+    .o-card .score-value { color: var(--o-color); text-shadow: var(--o-glow); }
+    .draw-card .score-value { color: var(--dim); }
+
+    .score-value.pop {
+      animation: scorePop 0.35s ease-out forwards;
+    }
+    @keyframes scorePop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.55); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── Status ────────────────────────────────────────────── */
+    .status-bar {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .status-text {
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      color: var(--dim);
+      animation: fadeSlideIn 0.3s ease-out;
+    }
+
+    .status-text.winner-x { color: var(--x-color); text-shadow: var(--x-glow); }
+    .status-text.winner-o { color: var(--o-color); text-shadow: var(--o-glow); }
+    .status-text.draw     { color: #a855f7; text-shadow: 0 0 20px #a855f766; }
+    .status-text.active-x { color: var(--x-color); }
+    .status-text.active-o { color: var(--o-color); }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Board ─────────────────────────────────────────────── */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: var(--board-size);
+      padding: 18px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .board.shake {
+      animation: shake 0.45s ease-out;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      15%      { transform: translateX(-8px); }
+      30%      { transform: translateX(8px); }
+      45%      { transform: translateX(-6px); }
+      60%      { transform: translateX(6px); }
+      75%      { transform: translateX(-3px); }
+      90%      { transform: translateX(3px); }
+    }
+
+    /* ── Cell ──────────────────────────────────────────────── */
+    .cell {
+      aspect-ratio: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cell:not(.taken):hover {
+      background: rgba(255,255,255,0.07);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .cell::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .cell.win-x::after {
+      background: radial-gradient(circle, #00d4ff22, transparent 70%);
+      box-shadow: inset 0 0 0 2px #00d4ff66;
+      opacity: 1;
+    }
+    .cell.win-o::after {
+      background: radial-gradient(circle, #ff006e22, transparent 70%);
+      box-shadow: inset 0 0 0 2px #ff006e66;
+      opacity: 1;
+    }
+
+    .cell.win-x, .cell.win-o {
+      animation: winBounce 0.5s ease-out forwards;
+    }
+    @keyframes winBounce {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.12); }
+      70%  { transform: scale(0.96); }
+      100% { transform: scale(1.04); }
+    }
+
+    .cell.dim { opacity: 0.25; transform: scale(0.95); }
+
+    .cell.taken { cursor: default; }
+
+    /* ── SVG symbols ───────────────────────────────────────── */
+    .cell svg {
+      width: 55%;
+      height: 55%;
+      overflow: visible;
+    }
+
+    /* X strokes */
+    .x-line {
+      stroke: var(--x-color);
+      stroke-width: 8;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 8px var(--x-color));
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+    }
+    .x-line-1 { animation: drawStroke 0.18s ease-out 0s    forwards; }
+    .x-line-2 { animation: drawStroke 0.18s ease-out 0.12s forwards; }
+
+    /* O circle */
+    .o-circle {
+      stroke: var(--o-color);
+      stroke-width: 8;
+      stroke-linecap: round;
+      fill: none;
+      filter: drop-shadow(0 0 8px var(--o-color));
+      stroke-dasharray: 283; /* 2π × 45 */
+      stroke-dashoffset: 283;
+      animation: drawStroke 0.35s ease-out 0s forwards;
+    }
+
+    @keyframes drawStroke {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* ── Restart button ────────────────────────────────────── */
+    .restart-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--text);
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 50px;
+      padding: 12px 32px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: background 0.2s, box-shadow 0.2s, transform 0.15s, border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .restart-btn:hover {
+      background: rgba(255,255,255,0.09);
+      border-color: rgba(255,255,255,0.25);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
+    }
+
+    .restart-btn:active { transform: translateY(0); }
+
+    .restart-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--rx, 50%) var(--ry, 50%), rgba(255,255,255,0.25) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .restart-btn.ripple::after { opacity: 1; }
+
+    /* ── Current player indicator ──────────────────────────── */
+    .turn-dots {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      opacity: 0.3;
+      transition: opacity 0.3s, box-shadow 0.3s, transform 0.3s;
+    }
+    .dot.x { background: var(--x-color); }
+    .dot.o { background: var(--o-color); }
+    .dot.active {
+      opacity: 1;
+      transform: scale(1.4);
+    }
+    .dot.x.active { box-shadow: var(--x-glow); }
+    .dot.o.active { box-shadow: var(--o-glow); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>TIC&nbsp;&nbsp;TAC&nbsp;&nbsp;TOE</h1>
+
+  <div class="scoreboard">
+    <div class="score-card x-card">
+      <span class="score-label">Player X</span>
+      <span class="score-value" id="score-x">0</span>
+    </div>
+    <div class="score-card draw-card">
+      <span class="score-label">Draws</span>
+      <span class="score-value" id="score-d">0</span>
+    </div>
+    <div class="score-card o-card">
+      <span class="score-label">Player O</span>
+      <span class="score-value" id="score-o">0</span>
+    </div>
+  </div>
+
+  <div class="turn-dots">
+    <div class="dot x active" id="dot-x"></div>
+    <div class="dot o" id="dot-o"></div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-text active-x" id="status">PLAYER X'S TURN</div>
+  </div>
+
+  <div class="board" id="board">
+    <div class="cell" data-index="0"></div>
+    <div class="cell" data-index="1"></div>
+    <div class="cell" data-index="2"></div>
+    <div class="cell" data-index="3"></div>
+    <div class="cell" data-index="4"></div>
+    <div class="cell" data-index="5"></div>
+    <div class="cell" data-index="6"></div>
+    <div class="cell" data-index="7"></div>
+    <div class="cell" data-index="8"></div>
+  </div>
+
+  <button class="restart-btn" id="restart-btn">NEW GAME</button>
+</div>
+
+<script>
+  // ── State ────────────────────────────────────────────────
+  const state = {
+    board: Array(9).fill(null),
+    current: 'X',
+    active: true,
+    scores: { X: 0, O: 0, D: 0 },
+  };
+
+  const WIN_CONDITIONS = [
+    [0,1,2],[3,4,5],[6,7,8], // rows
+    [0,3,6],[1,4,7],[2,5,8], // cols
+    [0,4,8],[2,4,6],          // diagonals
+  ];
+
+  // ── DOM refs ─────────────────────────────────────────────
+  const cells      = document.querySelectorAll('.cell');
+  const board      = document.getElementById('board');
+  const statusEl   = document.getElementById('status');
+  const scoreX     = document.getElementById('score-x');
+  const scoreO     = document.getElementById('score-o');
+  const scoreD     = document.getElementById('score-d');
+  const dotX       = document.getElementById('dot-x');
+  const dotO       = document.getElementById('dot-o');
+  const restartBtn = document.getElementById('restart-btn');
+
+  // ── SVG generators ───────────────────────────────────────
+  function svgX() {
+    return `<svg viewBox="0 0 100 100">
+      <line class="x-line x-line-1" x1="20" y1="20" x2="80" y2="80"/>
+      <line class="x-line x-line-2" x1="80" y1="20" x2="20" y2="80"/>
+    </svg>`;
+  }
+
+  function svgO() {
+    return `<svg viewBox="0 0 100 100">
+      <circle class="o-circle" cx="50" cy="50" r="33"
+        transform="rotate(-90 50 50)"/>
+    </svg>`;
+  }
+
+  // ── Game logic ───────────────────────────────────────────
+  function checkWinner() {
+    for (const [a, b, c] of WIN_CONDITIONS) {
+      if (state.board[a] && state.board[a] === state.board[b] && state.board[a] === state.board[c]) {
+        return { winner: state.board[a], cells: [a, b, c] };
+      }
+    }
+    return null;
+  }
+
+  function checkDraw() {
+    return state.board.every(Boolean);
+  }
+
+  function handleClick(e) {
+    const cell = e.currentTarget;
+    const idx  = +cell.dataset.index;
+
+    if (!state.active || state.board[idx]) return;
+
+    state.board[idx] = state.current;
+    cell.innerHTML = state.current === 'X' ? svgX() : svgO();
+    cell.classList.add('taken');
+
+    const result = checkWinner();
+
+    if (result) {
+      state.active = false;
+      state.scores[result.winner]++;
+      animateWin(result.winner, result.cells);
+      return;
+    }
+
+    if (checkDraw()) {
+      state.active = false;
+      state.scores.D++;
+      animateDraw();
+      return;
+    }
+
+    state.current = state.current === 'X' ? 'O' : 'X';
+    updateTurnUI();
+  }
+
+  // ── UI updates ───────────────────────────────────────────
+  function updateTurnUI() {
+    setStatus(`PLAYER ${state.current}'S TURN`, `active-${state.current.toLowerCase()}`);
+    dotX.classList.toggle('active', state.current === 'X');
+    dotO.classList.toggle('active', state.current === 'O');
+  }
+
+  function setStatus(text, cls) {
+    statusEl.className = 'status-text';
+    statusEl.textContent = text;
+    if (cls) statusEl.classList.add(cls);
+    // re-trigger animation
+    statusEl.style.animation = 'none';
+    statusEl.offsetHeight; // reflow
+    statusEl.style.animation = '';
+  }
+
+  function animateWin(winner, winCells) {
+    const cls = winner === 'X' ? 'winner-x' : 'winner-o';
+    setStatus(`PLAYER ${winner} WINS!`, cls);
+
+    cells.forEach((cell, i) => {
+      if (winCells.includes(i)) {
+        setTimeout(() => cell.classList.add(`win-${winner.toLowerCase()}`), 80);
+      } else {
+        setTimeout(() => cell.classList.add('dim'), 80);
+      }
+    });
+
+    // Update score with pop
+    const scoreEl = winner === 'X' ? scoreX : scoreO;
+    scoreEl.textContent = state.scores[winner];
+    popScore(scoreEl);
+
+    // Turn off dots
+    dotX.classList.remove('active');
+    dotO.classList.remove('active');
+  }
+
+  function animateDraw() {
+    setStatus("IT'S A DRAW!", 'draw');
+    board.classList.add('shake');
+    board.addEventListener('animationend', () => board.classList.remove('shake'), { once: true });
+
+    scoreD.textContent = state.scores.D;
+    popScore(scoreD);
+
+    dotX.classList.remove('active');
+    dotO.classList.remove('active');
+  }
+
+  function popScore(el) {
+    el.classList.remove('pop');
+    el.offsetHeight; // reflow
+    el.classList.add('pop');
+    el.addEventListener('animationend', () => el.classList.remove('pop'), { once: true });
+  }
+
+  // ── Restart ──────────────────────────────────────────────
+  function resetGame() {
+    state.board    = Array(9).fill(null);
+    state.current  = 'X';
+    state.active   = true;
+
+    cells.forEach(cell => {
+      cell.innerHTML = '';
+      cell.className = 'cell';
+    });
+
+    updateTurnUI();
+  }
+
+  // ── Ripple on restart ────────────────────────────────────
+  restartBtn.addEventListener('click', (e) => {
+    const rect = restartBtn.getBoundingClientRect();
+    restartBtn.style.setProperty('--rx', `${e.clientX - rect.left}px`);
+    restartBtn.style.setProperty('--ry', `${e.clientY - rect.top}px`);
+    restartBtn.classList.add('ripple');
+    setTimeout(() => restartBtn.classList.remove('ripple'), 400);
+    resetGame();
+  });
+
+  // ── Attach click handlers ────────────────────────────────
+  cells.forEach(cell => cell.addEventListener('click', handleClick));
+</script>
+</body>
+</html>
