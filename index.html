@@ -904,7 +904,12 @@
   function animateDraw() {
     setStatus("IT'S A DRAW!", 'draw');
     board.classList.add('shake');
-    board.addEventListener('animationend', () => board.classList.remove('shake'), { once: true });
+    function onShakeEnd(e) {
+      if (e.target !== board) return;
+      board.classList.remove('shake');
+      board.removeEventListener('animationend', onShakeEnd);
+    }
+    board.addEventListener('animationend', onShakeEnd);
 
     scoreD.textContent = state.scores.D;
     popScore(scoreD);
@@ -934,10 +939,13 @@
   function dismissCinematic() {
     stopWinFanfare();
     cinematic.classList.add('hide');
-    cinematic.addEventListener('animationend', () => {
+    function onHideEnd(e) {
+      if (e.target !== cinematic) return;
+      cinematic.removeEventListener('animationend', onHideEnd);
       cinematic.style.display = 'none';
       cinematic.classList.remove('hide');
-    }, { once: true });
+    }
+    cinematic.addEventListener('animationend', onHideEnd);
   }
 
   continuBtn.addEventListener('click', dismissCinematic);
