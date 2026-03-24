@@ -113,6 +113,10 @@
       letter-spacing: 0.2em;
       color: var(--dim);
       text-transform: uppercase;
+      max-width: 80px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .score-value {
@@ -241,7 +245,6 @@
     }
 
     .cell.dim { opacity: 0.25; transform: scale(0.95); }
-
     .cell.taken { cursor: default; }
 
     /* ── SVG symbols ───────────────────────────────────────── */
@@ -251,7 +254,6 @@
       overflow: visible;
     }
 
-    /* X strokes */
     .x-line {
       stroke: var(--x-color);
       stroke-width: 8;
@@ -263,14 +265,13 @@
     .x-line-1 { animation: drawStroke 0.18s ease-out 0s    forwards; }
     .x-line-2 { animation: drawStroke 0.18s ease-out 0.12s forwards; }
 
-    /* O circle */
     .o-circle {
       stroke: var(--o-color);
       stroke-width: 8;
       stroke-linecap: round;
       fill: none;
       filter: drop-shadow(0 0 8px var(--o-color));
-      stroke-dasharray: 283; /* 2π × 45 */
+      stroke-dasharray: 283;
       stroke-dashoffset: 283;
       animation: drawStroke 0.35s ease-out 0s forwards;
     }
@@ -337,24 +338,319 @@
     }
     .dot.x.active { box-shadow: var(--x-glow); }
     .dot.o.active { box-shadow: var(--o-glow); }
+
+    /* ── Name entry overlay ─────────────────────────────────── */
+    .name-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 10, 26, 0.85);
+      backdrop-filter: blur(12px);
+      animation: overlayIn 0.4s ease-out;
+    }
+    .name-overlay.hide {
+      animation: overlayOut 0.4s ease-in forwards;
+      pointer-events: none;
+    }
+    @keyframes overlayIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes overlayOut {
+      from { opacity: 1; }
+      to   { opacity: 0; }
+    }
+
+    .name-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      padding: 40px 36px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+      width: min(90vw, 380px);
+      animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes cardIn {
+      from { transform: scale(0.85) translateY(20px); opacity: 0; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .name-card-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      background: linear-gradient(135deg, var(--x-color), #a855f7, var(--o-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .name-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .name-field {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .name-field-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .name-field-badge.x { background: rgba(0,212,255,0.12); border: 1px solid rgba(0,212,255,0.3); }
+    .name-field-badge.o { background: rgba(255,0,110,0.12); border: 1px solid rgba(255,0,110,0.3); }
+    .name-field-badge svg { width: 18px; height: 18px; overflow: visible; }
+
+    .name-input {
+      flex: 1;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .name-input.x:focus { border-color: #00d4ff66; box-shadow: 0 0 0 3px #00d4ff18; }
+    .name-input.o:focus { border-color: #ff006e66; box-shadow: 0 0 0 3px #ff006e18; }
+    .name-input::placeholder { color: rgba(255,255,255,0.2); }
+
+    .start-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.3em;
+      color: #0a0a1a;
+      background: linear-gradient(135deg, var(--x-color), #a855f7);
+      border: none;
+      border-radius: 50px;
+      padding: 14px 40px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+      box-shadow: 0 4px 24px #00d4ff44;
+    }
+    .start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px #00d4ff66;
+      filter: brightness(1.1);
+    }
+    .start-btn:active { transform: translateY(0); }
+
+    /* ── Win cinematic overlay ──────────────────────────────── */
+    .cinematic {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: cinematicIn 0.5s ease-out;
+    }
+    .cinematic.hide {
+      animation: cinematicOut 0.5s ease-in forwards;
+      pointer-events: none;
+    }
+    @keyframes cinematicIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes cinematicOut {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0; transform: scale(1.06); }
+    }
+
+    .cinematic-bg {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 26, 0.92);
+      backdrop-filter: blur(16px);
+    }
+    .cinematic-bg.x { background: radial-gradient(ellipse at center, rgba(0,212,255,0.12) 0%, rgba(10,10,26,0.95) 65%); }
+    .cinematic-bg.o { background: radial-gradient(ellipse at center, rgba(255,0,110,0.12) 0%, rgba(10,10,26,0.95) 65%); }
+
+    .cinematic-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .cinematic-symbol {
+      width: clamp(80px, 22vw, 130px);
+      height: clamp(80px, 22vw, 130px);
+      animation: symbolDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes symbolDrop {
+      from { transform: scale(0) rotate(-15deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .cinematic-symbol svg { width: 100%; height: 100%; overflow: visible; }
+    .cinematic-symbol .x-line {
+      stroke-dashoffset: 0;
+      animation: none;
+      filter: drop-shadow(0 0 16px var(--x-color));
+    }
+    .cinematic-symbol .o-circle {
+      stroke-dashoffset: 0;
+      animation: none;
+      filter: drop-shadow(0 0 16px var(--o-color));
+    }
+
+    .cinematic-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.4em;
+      color: var(--dim);
+      opacity: 0;
+      animation: riseIn 0.5s ease-out 0.45s forwards;
+    }
+
+    .cinematic-name {
+      font-size: clamp(2rem, 8vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      line-height: 1;
+      opacity: 0;
+      animation: riseIn 0.6s cubic-bezier(0.34, 1.4, 0.64, 1) 0.55s forwards;
+    }
+    .cinematic.x .cinematic-name { color: var(--x-color); text-shadow: var(--x-glow), 0 0 80px #00d4ff66; }
+    .cinematic.o .cinematic-name { color: var(--o-color); text-shadow: var(--o-glow), 0 0 80px #ff006e66; }
+
+    .cinematic-wins {
+      font-size: clamp(1rem, 4vw, 1.5rem);
+      font-weight: 700;
+      letter-spacing: 0.5em;
+      color: var(--text);
+      opacity: 0;
+      animation: riseIn 0.5s ease-out 0.8s forwards;
+    }
+
+    .cinematic-continue {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--dim);
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50px;
+      padding: 10px 28px;
+      cursor: pointer;
+      margin-top: 12px;
+      opacity: 0;
+      transition: color 0.2s, border-color 0.2s, transform 0.15s;
+      animation: riseIn 0.5s ease-out 1.1s forwards;
+    }
+    .cinematic-continue:hover {
+      color: var(--text);
+      border-color: rgba(255,255,255,0.4);
+      transform: translateY(-2px);
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Cinematic pulse ring ───────────────────────────────── */
+    .cinematic-ring {
+      position: absolute;
+      width: clamp(200px, 50vw, 340px);
+      height: clamp(200px, 50vw, 340px);
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.06);
+      animation: pulseRing 2.5s ease-out infinite;
+    }
+    .cinematic.x .cinematic-ring { border-color: rgba(0,212,255,0.15); }
+    .cinematic.o .cinematic-ring { border-color: rgba(255,0,110,0.15); }
+    @keyframes pulseRing {
+      0%   { transform: scale(0.8); opacity: 0; }
+      50%  { opacity: 1; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
   </style>
 </head>
 <body>
+
+<!-- ── Name entry overlay ──────────────────────────────────── -->
+<div class="name-overlay" id="name-overlay">
+  <div class="name-card">
+    <div class="name-card-title">ENTER PLAYER NAMES</div>
+    <div class="name-fields">
+      <div class="name-field">
+        <div class="name-field-badge x">
+          <svg viewBox="0 0 100 100">
+            <line class="x-line" style="stroke-dashoffset:0;animation:none" x1="20" y1="20" x2="80" y2="80"/>
+            <line class="x-line" style="stroke-dashoffset:0;animation:none" x1="80" y1="20" x2="20" y2="80"/>
+          </svg>
+        </div>
+        <input class="name-input x" id="name-x" type="text" maxlength="12" placeholder="PLAYER X" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="name-field">
+        <div class="name-field-badge o">
+          <svg viewBox="0 0 100 100">
+            <circle class="o-circle" style="stroke-dashoffset:0;animation:none" cx="50" cy="50" r="33" transform="rotate(-90 50 50)"/>
+          </svg>
+        </div>
+        <input class="name-input o" id="name-o" type="text" maxlength="12" placeholder="PLAYER O" autocomplete="off" spellcheck="false" />
+      </div>
+    </div>
+    <button class="start-btn" id="start-btn">START GAME</button>
+  </div>
+</div>
+
+<!-- ── Win cinematic overlay ───────────────────────────────── -->
+<div class="cinematic" id="cinematic" style="display:none">
+  <div class="cinematic-bg" id="cinematic-bg"></div>
+  <div class="cinematic-ring"></div>
+  <div class="cinematic-inner">
+    <div class="cinematic-symbol" id="cinematic-symbol"></div>
+    <div class="cinematic-label">WINNER</div>
+    <div class="cinematic-name" id="cinematic-name"></div>
+    <div class="cinematic-wins">WINS!</div>
+    <button class="cinematic-continue" id="cinematic-continue">CONTINUE</button>
+  </div>
+</div>
 
 <div class="container">
   <h1>TIC&nbsp;&nbsp;TAC&nbsp;&nbsp;TOE</h1>
 
   <div class="scoreboard">
     <div class="score-card x-card">
-      <span class="score-label">Player X</span>
+      <span class="score-label" id="label-x">PLAYER X</span>
       <span class="score-value" id="score-x">0</span>
     </div>
     <div class="score-card draw-card">
-      <span class="score-label">Draws</span>
+      <span class="score-label">DRAWS</span>
       <span class="score-value" id="score-d">0</span>
     </div>
     <div class="score-card o-card">
-      <span class="score-label">Player O</span>
+      <span class="score-label" id="label-o">PLAYER O</span>
       <span class="score-value" id="score-o">0</span>
     </div>
   </div>
@@ -388,26 +684,38 @@
   const state = {
     board: Array(9).fill(null),
     current: 'X',
-    active: true,
+    active: false,
     scores: { X: 0, O: 0, D: 0 },
+    names: { X: 'PLAYER X', O: 'PLAYER O' },
   };
 
   const WIN_CONDITIONS = [
-    [0,1,2],[3,4,5],[6,7,8], // rows
-    [0,3,6],[1,4,7],[2,5,8], // cols
-    [0,4,8],[2,4,6],          // diagonals
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6],
   ];
 
   // ── DOM refs ─────────────────────────────────────────────
-  const cells      = document.querySelectorAll('.cell');
-  const board      = document.getElementById('board');
-  const statusEl   = document.getElementById('status');
-  const scoreX     = document.getElementById('score-x');
-  const scoreO     = document.getElementById('score-o');
-  const scoreD     = document.getElementById('score-d');
-  const dotX       = document.getElementById('dot-x');
-  const dotO       = document.getElementById('dot-o');
-  const restartBtn = document.getElementById('restart-btn');
+  const cells         = document.querySelectorAll('.cell');
+  const board         = document.getElementById('board');
+  const statusEl      = document.getElementById('status');
+  const scoreX        = document.getElementById('score-x');
+  const scoreO        = document.getElementById('score-o');
+  const scoreD        = document.getElementById('score-d');
+  const labelX        = document.getElementById('label-x');
+  const labelO        = document.getElementById('label-o');
+  const dotX          = document.getElementById('dot-x');
+  const dotO          = document.getElementById('dot-o');
+  const restartBtn    = document.getElementById('restart-btn');
+  const nameOverlay   = document.getElementById('name-overlay');
+  const nameInputX    = document.getElementById('name-x');
+  const nameInputO    = document.getElementById('name-o');
+  const startBtn      = document.getElementById('start-btn');
+  const cinematic     = document.getElementById('cinematic');
+  const cinematicBg   = document.getElementById('cinematic-bg');
+  const cinematicName = document.getElementById('cinematic-name');
+  const cinematicSym  = document.getElementById('cinematic-symbol');
+  const continuBtn    = document.getElementById('cinematic-continue');
 
   // ── SVG generators ───────────────────────────────────────
   function svgX() {
@@ -420,6 +728,20 @@
   function svgO() {
     return `<svg viewBox="0 0 100 100">
       <circle class="o-circle" cx="50" cy="50" r="33"
+        transform="rotate(-90 50 50)"/>
+    </svg>`;
+  }
+
+  function svgXStatic() {
+    return `<svg viewBox="0 0 100 100">
+      <line class="x-line" style="stroke-dashoffset:0;animation:none;stroke-width:10" x1="20" y1="20" x2="80" y2="80"/>
+      <line class="x-line" style="stroke-dashoffset:0;animation:none;stroke-width:10" x1="80" y1="20" x2="20" y2="80"/>
+    </svg>`;
+  }
+
+  function svgOStatic() {
+    return `<svg viewBox="0 0 100 100">
+      <circle class="o-circle" style="stroke-dashoffset:0;animation:none;stroke-width:10" cx="50" cy="50" r="33"
         transform="rotate(-90 50 50)"/>
     </svg>`;
   }
@@ -471,7 +793,8 @@
 
   // ── UI updates ───────────────────────────────────────────
   function updateTurnUI() {
-    setStatus(`PLAYER ${state.current}'S TURN`, `active-${state.current.toLowerCase()}`);
+    const name = state.names[state.current];
+    setStatus(`${name}'S TURN`, `active-${state.current.toLowerCase()}`);
     dotX.classList.toggle('active', state.current === 'X');
     dotO.classList.toggle('active', state.current === 'O');
   }
@@ -480,42 +803,85 @@
     statusEl.className = 'status-text';
     statusEl.textContent = text;
     if (cls) statusEl.classList.add(cls);
-    // re-trigger animation
     statusEl.style.animation = 'none';
-    statusEl.offsetHeight; // reflow
+    statusEl.offsetHeight;
     statusEl.style.animation = '';
   }
 
   // ── Sound ────────────────────────────────────────────────
   let audioCtx = null;
+  let winGainNode = null;
 
   function unlockAudio() {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  function playWinSound() {
+  function playWinFanfare() {
     if (!audioCtx) return;
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-    notes.forEach((freq, i) => {
+    if (winGainNode) {
+      winGainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+      winGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    }
+
+    const master = audioCtx.createGain();
+    master.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    master.connect(audioCtx.destination);
+    winGainNode = master;
+
+    // Melody: C5 E5 G5 C6 E6 — fanfare arpeggio
+    const melody = [
+      { freq: 523.25, t: 0,    dur: 0.35 },
+      { freq: 659.25, t: 0.18, dur: 0.35 },
+      { freq: 783.99, t: 0.36, dur: 0.35 },
+      { freq: 1046.5, t: 0.54, dur: 0.6  },
+      { freq: 1318.5, t: 0.72, dur: 1.2  },
+    ];
+
+    melody.forEach(({ freq, t, dur }) => {
       const osc  = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain);
-      gain.connect(audioCtx.destination);
+      gain.connect(master);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const s = audioCtx.currentTime + t;
+      gain.gain.setValueAtTime(0, s);
+      gain.gain.linearRampToValueAtTime(0.6, s + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, s + dur);
+      osc.start(s);
+      osc.stop(s + dur + 0.05);
+    });
+
+    // Sustained harmony chord: C5 + E5 + G5 (starts at 0.5s, fades over 3s)
+    [523.25, 659.25, 783.99].forEach(freq => {
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(master);
       osc.type = 'sine';
       osc.frequency.value = freq;
-      const start = audioCtx.currentTime + i * 0.12;
-      gain.gain.setValueAtTime(0.25, start);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
-      osc.start(start);
-      osc.stop(start + 0.4);
+      const s = audioCtx.currentTime + 0.5;
+      gain.gain.setValueAtTime(0, s);
+      gain.gain.linearRampToValueAtTime(0.15, s + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, s + 3.0);
+      osc.start(s);
+      osc.stop(s + 3.1);
     });
   }
 
+  function stopWinFanfare() {
+    if (!winGainNode || !audioCtx) return;
+    winGainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+    winGainNode.gain.setValueAtTime(winGainNode.gain.value, audioCtx.currentTime);
+    winGainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    winGainNode = null;
+  }
+
+  // ── Win animation ────────────────────────────────────────
   function animateWin(winner, winCells) {
-    playWinSound();
     const cls = winner === 'X' ? 'winner-x' : 'winner-o';
-    setStatus(`PLAYER ${winner} WINS!`, cls);
+    setStatus(`${state.names[winner]} WINS!`, cls);
 
     cells.forEach((cell, i) => {
       if (winCells.includes(i)) {
@@ -525,14 +891,14 @@
       }
     });
 
-    // Update score with pop
     const scoreEl = winner === 'X' ? scoreX : scoreO;
     scoreEl.textContent = state.scores[winner];
     popScore(scoreEl);
 
-    // Turn off dots
     dotX.classList.remove('active');
     dotO.classList.remove('active');
+
+    setTimeout(() => showCinematic(winner), 700);
   }
 
   function animateDraw() {
@@ -549,16 +915,64 @@
 
   function popScore(el) {
     el.classList.remove('pop');
-    el.offsetHeight; // reflow
+    el.offsetHeight;
     el.classList.add('pop');
     el.addEventListener('animationend', () => el.classList.remove('pop'), { once: true });
   }
 
+  // ── Cinematic ────────────────────────────────────────────
+  function showCinematic(winner) {
+    const p = winner.toLowerCase();
+    cinematic.className = `cinematic ${p}`;
+    cinematicBg.className = `cinematic-bg ${p}`;
+    cinematicName.textContent = state.names[winner];
+    cinematicSym.innerHTML = winner === 'X' ? svgXStatic() : svgOStatic();
+    cinematic.style.display = 'flex';
+    playWinFanfare();
+  }
+
+  function dismissCinematic() {
+    stopWinFanfare();
+    cinematic.classList.add('hide');
+    cinematic.addEventListener('animationend', () => {
+      cinematic.style.display = 'none';
+      cinematic.classList.remove('hide');
+    }, { once: true });
+  }
+
+  continuBtn.addEventListener('click', dismissCinematic);
+
+  // ── Name entry ───────────────────────────────────────────
+  function startGame() {
+    const nx = nameInputX.value.trim().toUpperCase() || 'PLAYER X';
+    const no = nameInputO.value.trim().toUpperCase() || 'PLAYER O';
+    state.names.X = nx;
+    state.names.O = no;
+    labelX.textContent = nx;
+    labelO.textContent = no;
+
+    nameOverlay.classList.add('hide');
+    nameOverlay.addEventListener('animationend', () => {
+      nameOverlay.style.display = 'none';
+    }, { once: true });
+
+    state.active = true;
+    updateTurnUI();
+  }
+
+  startBtn.addEventListener('click', () => {
+    unlockAudio();
+    startGame();
+  });
+
+  nameInputX.addEventListener('keydown', e => { if (e.key === 'Enter') nameInputO.focus(); });
+  nameInputO.addEventListener('keydown', e => { if (e.key === 'Enter') { unlockAudio(); startGame(); } });
+
   // ── Restart ──────────────────────────────────────────────
   function resetGame() {
-    state.board    = Array(9).fill(null);
-    state.current  = 'X';
-    state.active   = true;
+    state.board   = Array(9).fill(null);
+    state.current = 'X';
+    state.active  = true;
 
     cells.forEach(cell => {
       cell.innerHTML = '';
@@ -568,7 +982,6 @@
     updateTurnUI();
   }
 
-  // ── Ripple on restart ────────────────────────────────────
   restartBtn.addEventListener('click', (e) => {
     const rect = restartBtn.getBoundingClientRect();
     restartBtn.style.setProperty('--rx', `${e.clientX - rect.left}px`);
