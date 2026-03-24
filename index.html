@@ -444,6 +444,7 @@
 
     if (!state.active || state.board[idx]) return;
 
+    unlockAudio();
     state.board[idx] = state.current;
     cell.innerHTML = state.current === 'X' ? svgX() : svgO();
     cell.classList.add('taken');
@@ -486,17 +487,24 @@
   }
 
   // ── Sound ────────────────────────────────────────────────
+  let audioCtx = null;
+
+  function unlockAudio() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
   function playWinSound() {
-    const ctx = new AudioContext();
+    if (!audioCtx) return;
     const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
     notes.forEach((freq, i) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(audioCtx.destination);
       osc.type = 'sine';
       osc.frequency.value = freq;
-      const start = ctx.currentTime + i * 0.12;
+      const start = audioCtx.currentTime + i * 0.12;
       gain.gain.setValueAtTime(0.25, start);
       gain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
       osc.start(start);
